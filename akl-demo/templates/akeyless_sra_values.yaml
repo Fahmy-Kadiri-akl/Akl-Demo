@@ -1,0 +1,468 @@
+# This values.yaml file contains the default values for akeyless-secure-remote-access helm chart.
+# The chart bundles both akeyless-zero-trust-bastion and akeyless-ssh-bastion. 
+# Enter your configuration in the global and dedicated service sections
+
+############
+## Global ##
+############
+
+# Optional, completely ≈replaces the generated name of the chart in the Chart.yaml file, and chart release name.
+fullnameOverride:
+
+dockerRepositoryCreds:
+
+
+# a full URL of Akeyless API Gateway
+apiGatewayURL: https://rest.akeyless.io
+apiGatewayCert:
+  #  Specifies an existing secret for gateway tls certificate must include:
+  # - tls.crt
+  tlsCertsSecretName: 
+
+
+# Secure remote access cluster name. Use a name that will help you understand
+# the purpose of this cluster, for example, "sra-staging" or "us-west-prod"
+clusterName: defaultCluster
+
+# When set to "true", will sign ssh certificates using the legacy 'ssh-rsa-cert-v01@openssh.com' signing algorithm name in the certificate.
+legacySigningAlg: "false"
+
+# Optional, provide a key-name to extract the username (value) of that key in sub-claims. The extracted username will be used to authenticated to the remote target (RDP or SSH).
+usernameSubClaim:
+# Optional, This overrides (for RDP only) the global parameter usernameSubClaim
+RDPusernameSubClaim:
+# Optional, This overrides (for SSH only) the global parameter usernameSubClaim
+SSHusernameSubClaim:
+
+# Relevant for Zero-Trust Access for non-SSH targets (e.g. DBs, K8s, AWS CLIs).
+# If provided, it's recommended to grant minimal permissions ("List" only) to the Zero-Trust Dynamic Secrets,
+# while the privilegedAccess will have "Read" and "List" permissions.
+# optional credentials for zero-trust access: if provided, it is possible for
+# end users to only have "list" permissions on Akeyless items if privileged
+# credentials have "read" access.
+privilegedAccess:
+  # supported auth methods: AWS IAM, Azure AD, GCP and API Key;
+  # for AWS IAM or Azure AD, or GCP provide only accessID;
+  # for API Key, provide both accessID and accessKey
+
+  # existingSecretName will hold accessId, AccessKey and allowedAccessIDs
+  existingSecretNames:
+    ## access secret content should look like this:
+    # accessID: p-1234
+    # accessKey: mySecretKey
+    # * accessKey can be left empty, but the key must exist
+    access:
+    ## allowedIDs secret content should like this
+    # allowedAccessIDs: p-1234,11245,p-1256
+    allowedIDs:
+
+  accessID: ""
+  accessKey: ""
+   ## ref: https://docs.akeyless.io/docs/gateway-k8s#gateway-admins
+  allowedAccessIDs: []
+   # - p-1234
+   # - p-5678
+
+  ## AWS ref: https://docs.akeyless.io/docs/secure-remote-access-bastion#aws-iam
+  ## GCP ref: https://docs.akeyless.io/docs/secure-remote-access-bastion#gcp-gce
+  serviceAccount:
+    create: false
+    serviceAccountName:
+    annotations:
+
+  # Azure Object ID to use with privileged credentials of type Azure AD
+  azureObjectID: ""
+  # Audience to use with privileged credentials of type GCP
+  gcpAudience: "akeyless.io"
+
+# Linux system HTTP Proxy
+httpProxySettings:
+  http_proxy: ""
+  https_proxy: ""
+  no_proxy: ""
+
+deployment:
+  labels: {}
+
+####################################################
+## Default values for akeyless-zero-trust-bastion ##
+####################################################
+
+ztbConfig:
+  # Enable akeyless-zero-trust-bastion. Valid values: true/false.
+  enabled: true
+  replicaCount: 1
+
+  image:
+    repository: akeyless/zero-trust-bastion
+    pullPolicy: Always
+    # tag: latest
+    
+  containerName: "zero-trust-bastion"
+  env: []
+
+  service:
+    # Remove the {} and add any needed annotations regarding your LoadBalancer implementation
+    annotations: {}
+    labels: {}
+    type: LoadBalancer
+    port: 8888
+
+  ## Configure the ingress resource that allows you to access the
+  ## akeyless-zero-trust-bastion installation. Set up the URL
+  ## ref: http://kubernetes.io/docs/user-guide/ingress/
+  ##
+  ingress:
+    ## From nginx ingress-controller version xxxx the annotation is no longer supported use ingressClass instead
+    # ingressClass: nginx
+    ## Set to true to enable ingress record generation
+    ##
+    # enabled: true
+    annotations: {}
+    labels: {}
+  # Example for Nginx ingress
+    #  annotations:
+      #  kubernetes.io/ingress.class: nginx
+      #  nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      #  nginx.ingress.kubernetes.io/proxy-connect-timeout: "3600"
+      #  nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+      #  nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+      #  nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+      #  nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+
+  # IMPORTANT: When using DB application such as mysql, mssql, and mongodb, the ingress must be configured with "sticky" session!
+  # Example for sticky session on Nginx ingress
+  #      nginx.ingress.kubernetes.io/affinity: "cookie"
+  #      nginx.ingress.kubernetes.io/session-cookie-expires: "172800"
+  #      nginx.ingress.kubernetes.io/session-cookie-max-age: "172800"
+
+    hostname: zero-trust-bastion.local
+    ## Path for the default host
+    ##
+    path: /
+
+    ## Enable TLS configuration for the hostname defined at ingress.hostname parameter
+    ## TLS certificates will be retrieved from a TLS secret with name: {{- printf "%s-tls" .Values.ingress.hostname }}
+    ## or a custom one if you use the tls.existingSecret parameter
+    ##
+    tls: false
+
+    ## Set this to true in order to add the corresponding annotations for cert-manager
+    ##
+    certManager: false
+
+  # List of URLs that will be considered valid for redirection from the Portal back to the bastion
+  allowedBastionUrls: []
+    #- "https://bastion.my.org:8888"
+    #- "https://basion.other.org:8888"
+
+    ## existingSecret: name-of-existing-secret
+
+  # Akeyless requires data persistence to be shared within all pods in the cluster
+  # Currently only ReadWriteMany is supported
+  # accessMode: ReadWriteMany
+  # Change the below values according to your environment except for the hostPath values
+  persistence:
+    volumes: {}
+    #  volumes:
+    #  - name: akeyless-data
+    #    storageClassName: efs-zero-trust-bastion-sc
+    #   #  storageClassDriver: efs.csi.aws.com
+    #    size: 100Mi
+    #    annotations:
+    #     volume.beta.kubernetes.io/storage-class: ""
+
+  livenessProbe:
+    initialDelaySeconds: 15
+    periodSeconds: 30
+    failureThreshold: 10
+
+  readinessProbe:
+    initialDelaySeconds: 15
+    periodSeconds: 30
+    timeoutSeconds: 5
+
+  resources: {}
+    # The following resource settings represent minimum recommended requests without defined limits.
+    # We've set a base recommended requests of 1 vCPU and 2GB memory.
+    # We intentionally leave resource limits unspecified to enable customization. If you wish to set specific resource
+    # limits, uncomment the 'limits' section and adjust values as needed.
+    # If Horizontal Pod Autoscaler (HPA) usage is desired, you must set requests values.
+    # If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    #limits:
+    #  cpu: <your_cpu_limit>
+    #  memory: <your_memory_limit>
+    #requests:
+    #  cpu: 1
+    #  memory: 2G
+
+  HPA:
+    # Set the below to false in case you do not want to add Horizontal Pod AutoScaling to the Deployment
+    # If HPA is enabled resources requests must be set
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 14
+    cpuAvgUtil: 50
+    memAvgUtil: 50
+
+  config:
+    rdpRecord:
+      enabled: false
+      keepLocalRecording: false
+      # automatically upload session recordings to S3 in your AWS account
+      s3:
+        region: ""
+        bucketName: ""
+        bucketPrefix: ""
+        # optional, run with explicit credentials (without AWS IAM roles)
+        awsAccessKeyId: ""
+        awsSecretAccessKey: ""
+      # automatically upload session recordings to Blob storage in your Azure account
+      azure:
+        storageAccountName: ""
+        storageContainerName: ""
+        # optional, run with explicit credentials (without Azure IAM roles)
+        azureClientId: ""
+        azureClientSecret: ""
+        azureTenantId: ""
+      # Specifies an existing secret to be used for bastion, management AWS/Azure credentials
+      existingSecret: ""
+
+####################################################
+## Default values for akeyless-zero-trust-portal ##
+####################################################
+ztpConfig:
+  # Enable akeyless-zero-trust-portal. Valid values: true/false.
+  enabled: false
+  replicaCount: 1
+
+  nodeSelector:
+  #     iam.gke.io/gke-metadata-server-enabled: "true"
+
+  securityContext:
+    enabled: false
+    fsGroup: 0
+    runAsUser: 0
+
+  HPA:
+    # Set the below to false in case you do not want to add Horizontal Pod AutoScaling to the Deployment
+    # If HPA is enabled resources requests must be set
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 14
+    cpuAvgUtil: 50
+    memAvgUtil: 50
+
+  containerName: "zero-trust-portal"
+  env: []
+
+  image:
+    repository: akeyless/zero-trust-portal
+    pullPolicy: Always
+    # tag: latest
+
+  resources: {}
+    # The following resource settings represent minimum recommended requests without defined limits.
+    # We've set a base recommended requests of 1 vCPU and 2GB memory.
+    # We intentionally leave resource limits unspecified to enable customization. If you wish to set specific resource
+    # limits, uncomment the 'limits' section and adjust values as needed.
+    # If Horizontal Pod Autoscaler (HPA) usage is desired, you must set requests values.
+    # If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    #limits:
+    #  cpu: <your_cpu_limit>
+    #  memory: <your_memory_limit>
+    #requests:
+    #  cpu: 1
+  #  memory: 2G
+
+  livenessProbe:
+    initialDelaySeconds: 15
+    periodSeconds: 30
+    failureThreshold: 10
+
+  readinessProbe:
+    initialDelaySeconds: 15
+    periodSeconds: 30
+    timeoutSeconds: 5
+
+  service:
+    # Remove the {} and add any needed annotations regarding your LoadBalancer implementation
+    annotations: {}
+    labels: {}
+    type: LoadBalancer
+    port: 8080
+
+
+  ## Configure the ingress resource that allows you to access the
+  ## akeyless-zero-trust-portal installation. Set up the URL
+  ## ref: http://kubernetes.io/docs/user-guide/ingress/
+  ##
+  ingress:
+    ## From nginx ingress-controller version xxxx the annotation is no longer supported use ingressClass instead
+    # ingressClass: nginx
+    ## Set to true to enable ingress record generation
+    ##
+    # enabled: true
+    annotations: {}
+    labels: {}
+      # Example for Nginx ingress
+      #  annotations:
+      #  kubernetes.io/ingress.class: nginx
+      #  nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      #  nginx.ingress.kubernetes.io/proxy-connect-timeout: "3600"
+      #  nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+      #  nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+      #  nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+    #  nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+
+    # IMPORTANT: When using DB application such as mysql, mssql, and mongodb, the ingress must be configured with "sticky" session!
+    # Example for sticky session on Nginx ingress
+    #      nginx.ingress.kubernetes.io/affinity: "cookie"
+    #      nginx.ingress.kubernetes.io/session-cookie-expires: "172800"
+    #      nginx.ingress.kubernetes.io/session-cookie-max-age: "172800"
+
+    hostname: zero-trust-portal.local
+    ## Path for the default host
+    ##
+    path: /
+
+    ## Enable TLS configuration for the hostname defined at ingress.hostname parameter
+    ## TLS certificates will be retrieved from a TLS secret with name: {{- printf "%s-tls" .Values.ingress.hostname }}
+    ## or a custom one if you use the tls.existingSecret parameter
+    ##
+    tls: false
+
+    ## Set this to true in order to add the corresponding annotations for cert-manager
+    ##
+    certManager: false
+
+  # IMPORTANT: When using DB application such as mysql, mssql, and mongodb, the ingress must be configured with "sticky" session!
+  # Example for sticky session on Nginx ingress
+  #      nginx.ingress.kubernetes.io/affinity: "cookie"
+  #      nginx.ingress.kubernetes.io/session-cookie-expires: "172800"
+  #      nginx.ingress.kubernetes.io/session-cookie-max-age: "172800"
+
+
+#############################################
+## Default values for akeyless-ssh-bastion ##
+#############################################
+
+sshConfig:
+# Enable akeyless-ssh-bastion. Valid values: true/false.
+  enabled: true
+  replicaCount: 1
+
+  ## Statefulsets rolling update update strategy
+  ## Ref: https://kubernetes.io/docs/tutorials/stateful-application/basic-stateful-set/#rolling-update
+  updateStrategy: RollingUpdate
+
+  labels: {}
+
+  nodeSelector:
+  #     iam.gke.io/gke-metadata-server-enabled: "true"
+  securityContext:
+    enabled: false
+    fsGroup: 0
+    runAsUser: 0
+
+  env: []
+  initContainer:
+    image:
+      repository: busybox
+      tag: 1.30.1
+      pullPolicy: IfNotPresent
+
+  image:
+    repository: akeyless/ssh-proxy
+    pullPolicy: Always
+    # tag: latest
+
+  containerName: "ssh-bastion"
+
+  service:
+    # Remove the {} and add any needed annotations regarding your LoadBalancer implementation
+    annotations: {}
+    labels: {}
+    type: LoadBalancer
+    port: 22
+    curlProxyPort: 9900
+
+  # Akeyless requires data persistence to be shared within all pods in the cluster
+  # Currently only ReadWriteMany is supported
+  # accessMode: ReadWriteMany
+  # Change the below values according to your environment except for the hostPath values
+  persistence:
+    volumes: {}
+  #  volumes:
+    #  - name: akeyless-data
+    #    storageClassName: efs-ssh-bastion-sc
+    #   #  storageClassDriver: efs.csi.aws.com
+    #    size: 100Mi
+    #    annotations:
+    #     volume.beta.kubernetes.io/storage-class: ""
+    #    matchLabels:
+    #     usage: "ssh-bastion-pv"
+
+  resources: {}
+    # The following resource settings represent minimum recommended requests without defined limits.
+    # We've set a base recommended requests of 1 vCPU and 2GB memory.
+    # We intentionally leave resource limits unspecified to enable customization. If you wish to set specific resource
+    # limits, uncomment the 'limits' section and adjust values as needed.
+    # If Horizontal Pod Autoscaler (HPA) usage is desired, you must set requests values.
+    # If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    #limits:
+    #  cpu: <your_cpu_limit>
+    #  memory: <your_memory_limit>
+    #requests:
+    #  cpu: 1
+    #  memory: 2G
+
+  HPA:
+    # Set the below to true only when using a shared persistent storage (defined at .persistence.volumes)
+    # If HPA is enabled resources requests must be set
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 14
+    cpuAvgUtil: 50
+    memAvgUtil: 50
+
+  config:
+    CAPublicKey:
+    # CAPublicKey: |
+      
+    sessionTermination:
+    ## Session Termination is available for okta and keycloak
+    ## Ref: https://docs.akeyless.io/docs/professional-bastion
+      enabled: false
+      apiURL: ""
+      apiToken: ""
+
+    ## SSH log forwarding enables forwarding of the recordings of SSH sessions to customer log repository.
+    ## Ref: https://docs.akeyless.io/docs/ssh-log-forwarding
+    ##
+    logForwarding:
+      enabled: false
+
+      # existingSecretName will hold the configuration for sshConfig log forward
+      # The data structure in secret should be like so:
+      # settings: | ## make sure to keep settings as the key!
+      #   target_syslog_tag="ssh-audit-export"
+      #   target_log_type="syslog"
+      #   target_syslog_network="udp"
+      #   target_syslog_host="<host>:<port>"
+      existingSecretName:
+
+      # Syslog example
+#      settings: |
+#        target_syslog_tag="ssh-audit-export"
+#        target_log_type="syslog"
+#        target_syslog_network="udp"
+#        target_syslog_host="<host>:<port>"
+
+  # List of URLs that will be considered valid for redirection from the Portal back to the bastion
+  allowedBastionUrls: []
+    #- "bastion.my.org:2222"
+    #- "basion.other.org:2222"

@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-file-sidecar
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: file-secrets
+  template:
+    metadata:
+      labels:
+        app: file-secrets
+      annotations:
+        akeyless/enabled: "true"
+        akeyless/inject_file: "/K8s/my_k8s_secret|location=/secrets/secretsVersion.json" 
+        akeyless/side_car_enabled: "true"
+        akeyless/side_car_refresh_interval: "30m"
+        akeyless/side_car_versions_to_retrieve: "2"
+    spec:
+      containers:
+      - name: alpine
+        image: alpine
+        command:
+          - "sh"
+          - "-c"
+          - "while true; do [ ! -f /secrets/timestamp ] || [ /secrets/secretsVersion.json -nt /secrets/timestamp ] && touch /secrets/timestamp && cat /secrets/secretsVersion.json && echo ''; sleep 15; done"

@@ -1,0 +1,445 @@
+# Optional, completely replaces the generated name of the chart in the Chart.yaml file, and chart release name.
+fullnameOverride:
+
+# Default values for akeyless-api-gateway.
+
+replicaCount: 2
+
+# akeylessStrictMode need to be enabled when using Redhat Openshift
+akeylessStrictMode: false
+initContainer:
+  image:
+    repository: busybox
+    tag: 1.30.1
+    pullPolicy: IfNotPresent
+
+cache:
+  image:
+    repository: docker.io/bitnami/redis
+    tag: 6.2
+    pullPolicy: Always
+
+image:
+  repository: akeyless/base
+
+##   Alternative mirror registry
+#  repository: docker.registry-2.akeyless.io/base
+
+  pullPolicy: Always
+  tag: latest
+
+# Uncomment for downloading Akeyless artifacts from fixed repository
+# ref: https://docs.akeyless.io/docs/advanced-k8s-gateway-configuration#fixed-artifact-repository
+# fixedArtifactRepository: "artifacts.site2.akeyless.io"
+
+containerName: "api-gateway"
+
+# Linux system HTTP Proxy
+httpProxySettings:
+  http_proxy: ""
+  https_proxy: ""
+  no_proxy: ""
+
+deployment:
+  annotations: {}
+  labels: {}
+
+  ## AWS ref: https://docs.akeyless.io/docs/deploy-the-api-gateway-on-kubernetes#aws-iam
+  ## GCP ref: https://docs.akeyless.io/docs/deploy-the-api-gateway-on-kubernetes#gcp-gce
+  service_account:
+    create: false
+    serviceAccountName:
+    annotations:
+
+  # Place here any pod annotations you may need
+  pod:
+    annotations: {}
+
+  affinity:
+    enabled: false
+    data:
+  #    nodeAffinity:
+  #      requiredDuringSchedulingIgnoredDuringExecution:
+  #        nodeSelectorTerms:
+  #          - matchExpressions:
+  #              - key: kubernetes.io/arch
+  #                operator: In
+  #                values:
+  #                  - amd64
+  # ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
+  nodeSelector:
+    #     iam.gke.io/gke-metadata-server-enabled: "true"
+
+  # Enabling fips will pull the fips api-gateway binary
+  fips:
+    enabled: false
+
+  securityContext:
+    enabled: false
+    fsGroup: 0
+    runAsUser: 0
+
+  containerSecurityContext: {}
+# Remove the {} and add any needed values to your SecurityContext
+#    runAsUser: 0
+#    seccompProfile:
+#      type: RuntimeDefault
+service:
+  # Remove the {} and add any needed annotations regarding your LoadBalancer implementation
+  annotations: {}
+  labels: {}
+  type: LoadBalancer
+
+  # Here you can manage the list of ports you want to expose on the service (don't modify the port name):
+  # 8000 - Configuration manager
+  # 8080 - Akeyless Restful API
+  # 8081 - Akeyless Restful API V2
+  # 8200 - HVP vault proxy
+  # 5696 - KMIP
+  # 18888 - Akeyless UI
+  ports:
+    - name: web
+      port: 18888
+    - name: configure-app
+      port: 8000
+    - name: legacy-api
+      port: 8080
+    - name: api
+      port: 8081
+    - name: hvp
+      port: 8200
+    - name: kmip
+      port: 5696
+
+livenessProbe:
+  initialDelaySeconds: 120
+  periodSeconds: 60
+  failureThreshold: 10
+
+readinessProbe:
+  initialDelaySeconds: 120 # Startup can take time
+  periodSeconds: 10
+  timeoutSeconds: 5
+
+## Configure the ingress resource that allows you to access the
+## akeyless-api-gateway installation. Set up the URL
+## ref: http://kubernetes.io/docs/user-guide/ingress/
+##
+ingress:
+  ## Set to true to enable ingress record generation
+  ##
+  enabled: false
+
+  ## A reference to an IngressClass resource
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#deprecated-annotation
+
+#  ingressClassName:
+
+  labels: {}
+
+  # Example for Nginx ingress
+  #    annotations:
+  #      kubernetes.io/ingress.class: nginx
+  #      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  #      nginx.ingress.kubernetes.io/proxy-connect-timeout: "3600"
+  #      nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+  #      nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  #      nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+  #      nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+
+  # Example for Istio ingress
+  #    labels:
+  #      istio-injection: enabled
+  #    annotations:
+  #      kubernetes.io/ingress.class: "istio"
+  #
+  # You can set ingressClassName instead annotation and label
+  #    ingressClassName: istio
+  #
+  # In addition if you are using istio ingress, you must add the following annotation to the gateway pod annotations
+  #  pod:
+  #    annotations:
+  #      proxy.istio.io/config: '{"holdApplicationUntilProxyStarts": true }'
+
+  # Example for AWS ELB ingress
+  #    annotations:
+  #      kubernetes.io/ingress.class: alb
+  #      alb.ingress.kubernetes.io/scheme: internet-facing
+  annotations: {}
+
+
+  rules:
+    - servicePort: web
+      hostname: "ui.gateway.local"
+    - servicePort: hvp
+      hostname: "hvp.gateway.local"
+    - servicePort: legacy-api
+      hostname: "rest.gateway.local"
+    - servicePort: api
+      hostname: "api.gateway.local"
+    - servicePort: configure-app
+      hostname: "conf.gateway.local"
+
+# Example for ingress external rule in AWS, mainly for overriding specific paths
+#    - servicePort: web
+#      hostname: "ui.gateway.local"
+#      serviceName: redirect-to
+#      path: "/path-to-block/*"
+
+  ## Path for the default host
+  ##
+  path: /
+
+  ## Ingress Path type the value can be ImplementationSpecific, Exact or Prefix
+  ##
+  pathType: ImplementationSpecific
+
+  ## Enable TLS configuration for the hostname defined at ingress.hostname parameter
+  ## TLS certificates will be retrieved from a TLS secret with name: {{- printf "%s-tls" .Values.ingress.hostname }}
+  ## or a custom one if you use the tls.existingSecret parameter
+  ##
+  tls: false
+
+  ## Set this to true in order to add the corresponding annotations for cert-manager and secret name
+  ##
+  certManager: false
+
+  ## existingSecret: name-of-existing-secret
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+# Akeyless API Gateway application version
+# version:
+
+env: []
+
+
+akeylessUserAuth:
+  # adminAccessId is required field, supported types: access_key,password,certificate or cloud identity(aws_iam/azure_ad/gcp_gce)
+  adminAccessId:
+  adminAccessKey:
+  adminPassword:
+  adminBase64Certificate:
+  adminBase64CertificateKey:
+  adminUIDInitToken:
+
+  # Use k8s existing secret, must include the following key: admin-access-id
+  adminAccessIdExistingSecret:
+  # Use k8s existing secret, must include the following key: admin-access-key
+  adminAccessKeyExistingSecret:
+  # Use k8s existing secret, must include the following key: admin-password
+  adminPasswordExistingSecret:
+  # Use k8s existing secret, must include the following key: admin-certificate (base64)
+  adminBase64CertificateExistingSecret:
+  # Use k8s existing secret, must include the following key: admin-certificate-key (base64)
+  adminBase64CertificateKeyExistingSecret:
+  # Use k8s existing secret, must include the following key: admin-uid-init-token
+  adminUIDInitTokenExistingSecret:
+
+  clusterName:
+  initialClusterDisplayName:
+  # The key which is used to encrypt the API Gateway configuration. 
+  # If left empty - the account’s default key will be used. 
+  # This key can be determined on cluster bringup only and cannot be modified afterwards
+  configProtectionKeyName:
+
+  # This variable is deprecated, please use allowedAccessPermissions
+  allowedAccessIDs: []
+  # - p-1234 subClimekey1=subClimeVal1
+  # - p-1234 subClimekey2=subClimeVal2
+  # - p-5678 subClimekey1=subClimeVal1
+  # - p-5678
+
+  # Use k8s existing secret, must include the following key: allowed-access-ids
+  allowedAccessIDsExistingSecret:
+
+  # Configure this list to add one or more allowed access to this GW, with the specified permissions and sub-claims.
+  # Name must be unique.
+  # Empty permissions will implicitly give the access admin permission.
+  allowedAccessPermissions: {}
+#    - name: access1
+#      access_id: p-1234
+#      sub_claims:
+#        username:
+#          - username1
+#          - username2
+#        group:
+#          - IT
+#      permissions:
+#        - admin
+#    - name: access2
+#      access_id: p-1234
+#      sub_claims:
+#        group:
+#          - group1
+#      permissions:
+#        - targets
+#        - defaults
+#    - name: access3
+#      access_id: p-5678
+#      permissions:
+#        - targets
+#        - defaults
+
+  # Use k8s existing secret, must include the following key: allowed-access-permissions
+  allowedAccessPermissionsExistingSecret:
+
+  # restrict access to specific access-ids (comma separated list)
+  # restrictServiceToAccessIds: "p-1234,p-5678"
+  restrictServiceToAccessIds:
+
+  # restrict access to admin account
+  restrictAccessToAdminAccount: true
+
+  # use the gateway as oidc callback target
+  useGwForOidc: false
+
+universalIdentity:
+  # interval im minutes, if empty the token will be rotated in token-ttl/3  max=10 
+  uidRotationInterval: "5m" 
+  uidCreateChildTokenPerPod: "disable"   #<disable/enable>
+    
+# Customer Fragment is a critical component that allow customers to use a Zero-Knowledge Encryption.
+# For more information: https://docs.akeyless.io/docs/implement-zero-knowledge
+#customerFragments: |
+
+# Use k8s existing secret, must include the following key: customer-fragments
+customerFragmentsExistingSecret:
+
+# Customer Fragment that will be in use instead of the regular value, in base64 because of formatting issues.
+# Use this in case you deploy the chart using Terraform.
+#
+# Use only one of the values!
+#customerFragmentsEncoded: "BASE64 String"
+
+# Use k8s existing secret, must include the following key: customer-fragments (base64)
+customerFragmentsEncodedExistingSecret:
+
+# Specifies an initial configuration for the general section
+TLSConf:
+  akeylessWebUI: false
+  vaultProxy: false
+  akeylessAPIServices: false
+  configurationManager: false
+  enableSniProxy: false
+  # minimumTlsVersion can be one of the following <TLSv1/TLSv1.1/TLSv1.2/TLSv1.3> 
+  minimumTlsVersion:
+  # Comma separated list of cipher suites to exclude (e.g. "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA")
+  excludeCipherSuites:
+  # Specifies an existing secret for tls-certificate:
+  tlsExistingSecretName: 
+  # Alter this property of you need to use a different INPUT file name for the certificate, like from an existing secret
+  # Default value is 'akeyless-api-cert.crt' or change to your override file name
+  overrideCertFileName:
+  # Alter this property of you need to use a different INPUT file name for the key, like from an existing secret
+  # Default value is 'akeyless-api-cert.key' or change to your override file name
+  overrideKeyFileName:
+  # 
+  # tlsCertificate: |-
+  #   -----BEGIN CERTIFICATE-----
+  #   <cert>
+  #   -----END CERTIFICATE-----
+  # tlsPrivateKey: |-
+  #   -----BEGIN RSA PRIVATE KEY-----
+  #   <key>
+  #   -----END RSA PRIVATE KEY-----
+  
+
+# Specifies an initial configuration for the defaults section
+defaultsConf: {}
+  ## Default SAML Access ID to be used for initial WebUI login 
+  # defaultSamlAccessId:
+  ## Default OIDC Access ID to be used for initial WebUI login
+  # defaultOidcAccessId:
+  ## Default Certificate Access ID to be used for initial WebUI login
+  # defaultCertificateAccessId:
+  ## This Default Encryption Key will be selected when creating the following items: Static Secrets, Dynamic Secret Producers and Secret Migration Configurations
+  # defaultEncryptionKey:
+  ## The location of the default path to save secrets
+  # defaultSecretLocation:
+
+
+# Specifies an initial configuration for the caching section
+cachingConf:
+  enabled: false
+  ## The amount of time during which a secret should be cached in minutes
+  # cacheTTL: 60
+
+  clusterCache:
+    enabled: false
+    # In case clusterCache is enabled, you must specify an existing secret for the cluster cache configuration, must include:
+    # - cluster-cache-encryption-key
+    encryptionKeyExistingSecret:
+
+  proActiveCaching:
+    enabled: false
+  
+    ## The minimum fetching interval in minutes (used to avoid fetching a secret too many times in a given timeframe)
+    # minimumFetchingTime: 5
+    
+    ## The interval in which the proactive cache is encrypted and save to disk, in minutes
+    # dumpInterval: 1
+
+  # Configure metrics exporter (backend) (such as Datadog,Prometheus, etc..)
+  # Provide an existing secret with the metrics configuration or use the config section
+  # For more details: https://docs.akeyless.io/docs/telemetry-metrics-k8s
+metrics:
+  enabled: false  
+  # Specifies an existing secret for metrics must include:
+  # - otel-config.yaml (base64) secret
+  # - Syntax must be in YAML format
+  existingSecretName:
+  # An example for metrics configuration for datadog exporter
+
+#  config: |
+#     exporters:
+#
+#       datadog:
+#         api:
+#           key: <api-key>
+#
+#     service:
+#       pipelines:
+#         metrics:
+#           exporters: [datadog]
+
+## Specifies an initial configuration for log forwarding
+# for more details: https://docs.akeyless.io/docs/ssh-log-forwarding
+#
+#logandConf: |
+# enable="true"
+# logan_json_output="<false/true>"
+# target_log_type="splunk" #splunk/syslog/logstash/elasticsearch/logz_io/aws_s3/azure_log_analytics/datadog
+# target_splunk_sourcetype="<your_sourcetype>"
+# target_splunk_source="<your_source>"
+# target_splunk_index="<your_index>"
+# target_splunk_token="<your_token>"
+# target_splunk_url="<your_splunk_host_address>"
+
+
+# Specifies an existing secret for logand should be in yaml syntax, and include:
+# - logand-conf field (base64). The content the same as above.
+logandExistingSecretName:
+
+
+HPA:
+  # Set the below to false in case you do not want to add Horizontal Pod AutoScaling to the StatefulSet (not recommended)
+  # Note that metrics server must be installed for this to work:
+  # https://github.com/kubernetes-sigs/metrics-server
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 14
+  cpuAvgUtil: 50
+  memAvgUtil: 50
+
+  annotations: {}
