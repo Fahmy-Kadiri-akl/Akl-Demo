@@ -1,12 +1,12 @@
 ############## BEGIN - Install Akeyless API Gateway.  #######################
 
-resource "time_sleep" "wait_60" {
+resource "time_sleep" "third_wait" {
   depends_on = [kubectl_manifest.issuer_letsencrypt_prod]
-  create_duration = "60s"
+  create_duration = "120s"
 }
 
 resource "helm_release" "api_gateway" {
-  depends_on =[time_sleep.wait_60]
+  depends_on =[time_sleep.third_wait]
   name       = "akeyless-api-gateway"
   repository = "https://akeylesslabs.github.io/helm-charts"
   chart      = "akeyless-api-gateway"
@@ -32,9 +32,6 @@ ingress:
     nginx.ingress.kubernetes.io/client-header-buffer-size: 100k
     nginx.ingress.kubernetes.io/http2-max-header-size: 96k
     nginx.ingress.kubernetes.io/large-client-header-buffers: 4 100k
-    #nginx.ingress.kubernetes.io/server-snippet: | # this is where the magic happens
-      # client_header_buffer_size 100k;
-      # large_client_header_buffers 4 100k;
   rules:
     - servicePort: web
       hostname: "ui.${var.domain_suffix}"

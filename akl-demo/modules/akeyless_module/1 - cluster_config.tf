@@ -45,14 +45,14 @@ resource "google_dns_record_set" "a_record" {
   rrdatas      = [data.kubernetes_service.nginx_ingress_lb.status.0.load_balancer.0.ingress.0.ip]
 }
 
-resource "time_sleep" "wait_5" {
+resource "time_sleep" "first_wait" {
   depends_on = [google_dns_record_set.a_record]
 
-  create_duration = "10s"
+  create_duration = "120s"
 }
 #install Cert Manager
 resource "helm_release" "cert_manager" {
-  depends_on = [google_dns_record_set.a_record,time_sleep.wait_5 ]
+  depends_on = [google_dns_record_set.a_record,time_sleep.first_wait ]
   name       = "cert-manager"
   repository = "https://charts.jetstack.io"
   chart      = "cert-manager"
@@ -68,21 +68,21 @@ resource "helm_release" "cert_manager" {
     value = "cert-manager"
   }
     // Set the email address for ACME registration
-  set {
-    name  = "spec.acme.email"
-    value = var.admin_email
-  }
+  # set {
+  #   name  = "spec.acme.email"
+  #   value = var.admin_email
+  # }
 }
 
-resource "time_sleep" "wait" {
+resource "time_sleep" "second_wait" {
   depends_on = [helm_release.ingress_controller, helm_release.cert_manager]
 
-  create_duration = "10s"
+  create_duration = "160s"
 }
 
 resource "kubectl_manifest" "issuer_letsencrypt_prod" {
   depends_on = [
-    time_sleep.wait
+    time_sleep.second_wait
   ]
   count = 2 # creates two instances of the resource
   yaml_body = <<-EOF
@@ -90,15 +90,15 @@ apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   annotations: {}
-  name: letsencrypt-staging
+  name: letsencrypt-prod
   namespace: ${var.namespaces[count.index == 0 ? 0 : 3]}
 spec:
   acme:
     email: ${var.admin_email}
     preferredChain: ""
     privateKeySecretRef:
-      name: letsencrypt-staging
-    server: https://acme-staging-v02.api.letsencrypt.org/directory
+      name: letsencrypt-prod
+    server: https://acme-v02.api.letsencrypt.org/directory
     solvers:
       - http01:
           ingress:
