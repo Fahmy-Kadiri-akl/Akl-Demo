@@ -37,7 +37,9 @@ The project deployes in a standalone GKE cluster and includes the following comp
 - Create a DNS zome in GCP and have the domain_suffix available.
 
 ## Usage
-Detailed usage instructions, possibly with examples or use cases.
+- Download the repo locally
+- terraform init
+- terraform apply
 
 ## Configuration
 Here is a sample of environment variables you will need to add to `Terraform.tfvars`, you can also export `TF_VAR=` instead.
@@ -72,6 +74,15 @@ uid_token     = "placeholder"
 docker_repo_creds = ""
   ```
 
+## Known Issues
+- You may run into permissions issues because your service accounts may not have the right set of permissions to perform actions in your GCP environment.  When you see an error related to permissions, find the corresponding missing permissions and add it like this:
+
+```gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+  --member="serviceAccount:YOUR_EMAIL@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/compute.admin"
+```
+- Apply your terraform config again after you've added all of the needed permissions
+   
 ## Modules
 okta_module
 Akeyless_module
