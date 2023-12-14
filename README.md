@@ -82,7 +82,8 @@ docker_repo_creds = ""
   --role="roles/compute.admin"
 ```
 - Apply your terraform config again after you've added all of the needed permissions
-   
+- If you destroy your Terraform config, you will get a ```400 bad request``` error.  This is because the API Key access-id Terraform tries to being used by a running Gateway.  You can't delete the gateway while it's running either, so catch 22, the only way around this is to wait for a timeout period 2-5 minutes, and manually delete the gateway from the akeyless console https://console.akeyless.io.  This will resolve the error and you can destroy the rest of the terraform config.
+  
 ## Modules
 okta_module
 Akeyless_module
