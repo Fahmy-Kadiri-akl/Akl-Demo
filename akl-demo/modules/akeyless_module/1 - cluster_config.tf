@@ -1,11 +1,15 @@
-#create the namespaces in the new cluster, values taken from variables.tf in helm_module
+#create the namespaces in the new cluster and label them, values taken from variables.tf
 resource "kubernetes_namespace" "namespace" {
   for_each = toset(var.namespaces)
 
   metadata {
-    name = each.value
+    name   = each.value
+    labels = {
+      "name" = each.value
+    }
   }
 }
+
 
 #Install NGINX-Controller and manually overwrite the tcp values to port forward ports 22, 9000, and 9900 inbound
 resource "helm_release" "ingress_controller" {
@@ -18,8 +22,8 @@ resource "helm_release" "ingress_controller" {
 allowSnippetAnnotations: true
 tcp:
   22: "${var.namespaces[0]}/ubuntu:22"
-  9000: "${var.namespaces[0]}/akeyless-ztwa-dispatcher:9000"
-  9900: "${var.namespaces[0]}/akeyless-sra-akeyless-sra:9900"
+  9000: "${var.namespaces[0]}/akeyless-ztwa:9000"
+  9900: "${var.namespaces[0]}/akeyless-sra:9900"
 EOF
   ]
 }
@@ -61,6 +65,10 @@ resource "helm_release" "cert_manager" {
   set {
     name  = "installCRDs"
     value = "true"
+  }
+  set {
+    name  = "extraArgs"
+    value = "{--feature-gates=ExperimentalCertificateSigningRequestControllers=true}"
   }
 
   set {

@@ -88,6 +88,11 @@ variable "dns_zone_name" {
   sensitive     = true
 }
 
+variable "docker_repo_creds" {
+  description = "docker_repo_creds"
+  type        = string
+  sensitive = true
+}
 # variable "k8s_cluster_name" {
 #   description = "The GCP region"
 #   type        = string

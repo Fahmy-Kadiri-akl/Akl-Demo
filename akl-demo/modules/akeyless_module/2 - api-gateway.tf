@@ -58,6 +58,7 @@ akeylessUserAuth:
   allowedAccessIDs:
   - ${akeyless_auth_method_saml.saml_auth.access_id} groups=${var.akeyless_admins_group_name}
   - ${var.uid_access_id}
+  - ${akeyless_auth_method_k8s.k8s_auth.access_id}
 EOF
   ]
 }

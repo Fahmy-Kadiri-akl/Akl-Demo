@@ -47,4 +47,5 @@ module "akeyless_module" {
   gcp_region                 = var.gcp_region
   gcp_project                = var.gcp_project
   dns_zone_name              = var.dns_zone_name
+  docker_repo_creds         = var.docker_repo_creds
 }

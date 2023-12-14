@@ -31,3 +31,7 @@ output "user_key" {
 output "ca_cert" {
   value = data.external.akeyless_csr.result["ca_cert"]
 }
+
+output "issuer_output" {
+  value = data.external.issuer.result
+}

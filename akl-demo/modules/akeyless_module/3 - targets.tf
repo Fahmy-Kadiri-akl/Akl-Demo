@@ -25,6 +25,32 @@ resource "akeyless_target_db" "postgresql_target" {
     pwd = "MyPassword"
 }
 
+# resource "akeyless_rotated_secret" "postgresql_rotate" {
+#     depends_on =[akeyless_target_db.postgresql_target]
+#     name = "/Demo/0 - Databases/postgresql_rotate"
+#     target_name = "${akeyless_target_db.postgresql_target.name}"
+#     rotator_type = "target"
+#     rotation_interval = "1"
+# }
+
+# resource "akeyless_producer_postgres" "postgresql_producer_ro" {
+#     depends_on = [akeyless_target_db.postgresql_target]
+#     name = "/Demo/0 - Databases/postgresql_producer"
+#     target_name = "${akeyless_target_db.postgresql_target.name}"
+
+#     creation_statements = <<-EOF
+#     CREATE USER "{{name}}" WITH PASSWORD '{{password}}' ; 
+#     GRANT SELECT ON ALL TABLES IN SCHEMA public TO "{{name}}";
+#     GRANT CONNECT ON DATABASE postgres TO "{{name}}";
+#     GRANT USAGE ON SCHEMA public TO "{{name}}";
+#     EOF
+
+#     # description = <<-EOF
+#     # Revocation Statement:
+#     # REASSIGN OWNED BY "{{name}}" TO {{userHost}}; DROP OWNED BY "{{name}}";
+#     # select pg_terminate_backend(pid) from pg_stat_activity where usename = '{{name}}'; DROP USER "{{name}}";
+#     # EOF
+# }
 
 
 # resource "akeyless_producer_postgres" "postgresql_producer_su" {
