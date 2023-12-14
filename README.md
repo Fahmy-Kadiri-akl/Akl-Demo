@@ -37,7 +37,8 @@ The project deployes in a standalone GKE cluster and includes the following comp
 - Create a DNS zome in GCP and have the domain_suffix available.
 
 ## Usage
-- Download the repo locally
+- Download the repo locally.  There are two separate configs, the primary config is in the demo folder, the secondray is in the rotate folder
+- cd into the demo folder
 - terraform init
 - terraform apply
 
