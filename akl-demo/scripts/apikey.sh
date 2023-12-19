@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Read from stdin and extract values
+eval "$(jq -r '@sh "adminAccessId=\(.adminAccessId) adminAccessKey=\(.adminAccessKey)"')"
+
 # Define the path and filename
 PROFILE_PATH="${HOME}/.akeyless/profiles"
 FILE="apikey.toml"

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+eval "$(jq -r '@sh "UID_TOKEN=\(.UID_TOKEN) PRV_KEY=\(.PRV_KEY) GATEWAY_URL=\(.GATEWAY_URL) K8S_AUTH_METHOD=\(.K8S_AUTH_METHOD)"')"
+
 # Use environment variables passed from Terraform
 export USERNAME="AkeylessK8sAuth"
 export GROUP="AkeylessAuth"
@@ -9,11 +11,11 @@ PRV_KEY="${K8S_PRIVATE_KEY}"
 uid_token="${UID_TOKEN}"
 
 #cleanup old config:
-akeyless delete-items -p "/k8s/" --profile apikey >/dev/null 2>&1
+akeyless delete-items -p "/k8s/" --uid-token $uid_token >/dev/null 2>&1
 
 # Generate CSR and User Key, suppressing all output except the needed JSON data
-K8S_CSR=$(akeyless generate-csr -n /k8s/Clustername/csr/$USERNAME --generate-key --alg RSA2048 --common-name $USERNAME --gateway-url $GATEWAY_URL --org $GROUP --json --jq-expression ".data" --profile apikey | sed 's/NEW //g' | base64 | tr -d "\n")
-USER_KEY=$(akeyless export-classic-key -n /k8s/Clustername/csr/$USERNAME --jq-expression ".key" --profile apikey | base64)
+K8S_CSR=$(akeyless generate-csr -n /k8s/Clustername/csr/$USERNAME --generate-key --alg RSA2048 --common-name $USERNAME --gateway-url $GATEWAY_URL --org $GROUP --json --jq-expression ".data" --uid-token $uid_token | sed 's/NEW //g' | base64 | tr -d "\n")
+USER_KEY=$(akeyless export-classic-key -n /k8s/Clustername/csr/$USERNAME --jq-expression ".key" --uid-token $uid_token | base64)
 
 # Apply CertificateSigningRequest, suppressing output
 cat <<EOF | kubectl apply -f - >/dev/null 2>&1
@@ -37,7 +39,7 @@ kubectl certificate approve $USERNAME  >/dev/null 2>&1
 
 # Get User Certificate, suppressing errors
 USER_CERT=$(kubectl get csr $USERNAME -o jsonpath='{.status.certificate}' )  
-akeyless create-certificate --name /k8s/Clustername/certificates/$USERNAME --certificate-data $USER_CERT --key-data $USER_KEY --expiration-event-in 30 --profile apikey >/dev/null 2>&1
+akeyless create-certificate --name /k8s/Clustername/certificates/$USERNAME --certificate-data $USER_CERT --key-data $USER_KEY --expiration-event-in 30 --uid-token $uid_token >/dev/null 2>&1
 
 HOST=$(kubectl config view --minify --output 'jsonpath={.clusters[0].cluster.server}')
 
@@ -68,7 +70,7 @@ akeyless gateway-create-k8s-auth-config \
 --k8s-client-certificate $USER_CERT \
 --k8s-client-key $USER_KEY \
 --k8s-ca-cert $CA_CERT \
---disable-issuer-validation --profile apikey >/dev/null 2>&1
+--disable-issuer-validation --uid-token $uid_token >/dev/null 2>&1
 
 akeyless gateway-update-k8s-auth-config \
 --name demo_k8s_config \
@@ -81,7 +83,7 @@ akeyless gateway-update-k8s-auth-config \
 --k8s-client-certificate $USER_CERT \
 --k8s-client-key $USER_KEY \
 --k8s-ca-cert $CA_CERT \
---disable-issuer-validation true --profile apikey >/dev/null 2>&1
+--disable-issuer-validation true --uid-token $uid_token >/dev/null 2>&1
 
 # Output in JSON format using jq
 jq -n --arg k8s_csr "$K8S_CSR" --arg user_key "$USER_KEY" \

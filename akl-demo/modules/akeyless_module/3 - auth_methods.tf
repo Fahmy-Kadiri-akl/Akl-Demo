@@ -19,8 +19,7 @@ resource "akeyless_associate_role_auth_method" asoc_role_am {
 }
 
 resource "akeyless_auth_method_api_key" "api_auth" {
-    name = "/Demo/0 - Akeyless/API_Key"
-    
+    name = "/Demo/0 - Akeyless/API_Key" 
 }
 
 resource "akeyless_associate_role_auth_method" asoc_role_API_Key {
