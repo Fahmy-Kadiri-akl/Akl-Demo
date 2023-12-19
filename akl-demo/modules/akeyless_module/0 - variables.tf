@@ -1,7 +1,6 @@
 variable "domain_suffix" {
   description = "The domain suffix for the Akeyless API Gateway"
   type        = string
-  sensitive = true
 }
 
 variable "admin_email" {
@@ -18,6 +17,12 @@ variable "uid_token" {
   description = "UID token for Akeyless"
   type        = string
   sensitive = true
+}
+
+variable "script_output_t_token" {
+  description = "Temporary Token from script output"
+  type        = string
+  sensitive   = true
 }
 
 variable "idp_metadata_xml_data" {

@@ -1,16 +1,5 @@
-data "external" "akeyless_csr" {
-  depends_on = [helm_release.api_gateway]
-  program = ["${path.module}/../../scripts/generate_csr.sh"]
-
-  query = {
-    GATEWAY_URL = "https://conf.${var.domain_suffix}"
-    K8S_AUTH_METHOD = "${akeyless_auth_method_k8s.k8s_auth.access_id}"
-    K8S_PRIVATE_KEY = "${akeyless_auth_method_k8s.k8s_auth.private_key}"
-  }
-}
-
 resource "helm_release" "akeyless-k8s-injector" {
-  depends_on = [data.external.akeyless_csr]
+  depends_on = [data.external.akeyless_csr, helm_release.api_gateway]
   name       = "akeyless-k8sinjection"
   repository = "https://akeylesslabs.github.io/helm-charts"
   chart      = "akeyless-secrets-injection"

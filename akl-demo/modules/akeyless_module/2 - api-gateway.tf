@@ -6,7 +6,7 @@ resource "time_sleep" "third_wait" {
 }
 
 resource "helm_release" "api_gateway" {
-  depends_on =[time_sleep.third_wait]
+  depends_on =[time_sleep.third_wait, kubectl_manifest.issuer_letsencrypt_prod]
   name       = "akeyless-api-gateway"
   repository = "https://akeylesslabs.github.io/helm-charts"
   chart      = "akeyless-api-gateway"
@@ -45,20 +45,19 @@ ingress:
       hostname: "conf.${var.domain_suffix}"
   tls: true
   certManager: true
-version:
+version: "3.54.0"
 env:
 - name: CLUSTER_URL
   value: https://conf.${var.domain_suffix}
 akeylessUserAuth:
   adminAccessId: "${akeyless_auth_method_api_key.api_auth.access_id}"
   adminAccessKey: "${akeyless_auth_method_api_key.api_auth.access_key}"
-
   clusterName: "Demo Gateway"
   initialClusterDisplayName: "Demo Gateway"
   allowedAccessIDs:
-  - ${akeyless_auth_method_saml.saml_auth.access_id} groups=${var.akeyless_admins_group_name}
-  - ${var.uid_access_id}
-  - ${akeyless_auth_method_k8s.k8s_auth.access_id}
+    - ${akeyless_auth_method_saml.saml_auth.access_id} groups=${var.akeyless_admins_group_name}
+    - ${var.uid_access_id}
+    - ${akeyless_auth_method_k8s.k8s_auth.access_id}
 EOF
   ]
 }

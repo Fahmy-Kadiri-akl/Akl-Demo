@@ -1,6 +1,6 @@
 resource "helm_release" "akeyless-ztwa" {
   count      = length(var.docker_repo_creds) > 0 ? 1 : 0
-  depends_on =[time_sleep.third_wait, data.external.issuer]
+  depends_on =[time_sleep.third_wait, data.external.issuer, helm_release.akeyless-sra]
   name       = "akeyless-ztwa"
   repository = "https://akeylesslabs.github.io/helm-charts"
   chart      = "akeyless-zero-trust-web-access"

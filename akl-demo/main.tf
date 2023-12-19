@@ -23,6 +23,14 @@ data "external" "script_output" {
   }
 }
 
+# resource "null_resource" "cleanup_before_destroy" {
+#   # Triggers the script before this resource is destroyed
+#   provisioner "local-exec" {
+#     when    = destroy
+#     command = "/scripts/cleanup.sh"]"
+#   }
+#}
+
 module "okta_module" {
   source = "./modules/okta_module"
 
@@ -41,6 +49,7 @@ module "akeyless_module" {
   admin_email                = var.admin_email
   uid_access_id              = data.external.script_output.result["uid_access_id"]
   uid_token                  = data.external.script_output.result["uid_token"]
+  script_output_t_token      = data.external.script_output.result["t_token"]
   aws_access_key             = var.aws_access_key
   aws_secret_key             = var.aws_secret_key
   gcp_key                    = var.gcp_key
@@ -49,3 +58,4 @@ module "akeyless_module" {
   dns_zone_name              = var.dns_zone_name
   docker_repo_creds         = var.docker_repo_creds
 }
+

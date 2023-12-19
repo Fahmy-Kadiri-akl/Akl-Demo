@@ -25,6 +25,17 @@ resource "akeyless_target_db" "postgresql_target" {
     pwd = "MyPassword"
 }
 
+resource "akeyless_target_db" "mysql_target" {
+    depends_on =[helm_release.install_mysql]
+    db_type = "mysql"
+    name = "/Demo/0 - Databases/mysql"
+    db_name = "mysql"
+    port = "3306"
+    host = "mysql.my-apps.svc.cluster.local"
+    user_name = "root"
+    pwd = "MyPassword"
+}
+
 # resource "akeyless_rotated_secret" "postgresql_rotate" {
 #     depends_on =[akeyless_target_db.postgresql_target]
 #     name = "/Demo/0 - Databases/postgresql_rotate"

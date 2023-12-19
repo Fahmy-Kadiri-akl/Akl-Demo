@@ -1,17 +1,8 @@
 ############## BEGIN - Install Akeyless API Gateway.  #######################
 
-data "external" "issuer" {
-  program = ["${path.module}/../../scripts/issuer.sh"]
-
-  query = {
-    KeyName    = local.KeyName
-    IssuerName = local.IssuerName
-  }
-}
-
 resource "helm_release" "akeyless-sra" {
   count      = length(var.docker_repo_creds) > 0 ? 1 : 0
-  depends_on =[time_sleep.third_wait, data.external.issuer]
+  depends_on =[time_sleep.third_wait, data.external.akeyless_csr, helm_release.api_gateway]
   name       = "akeyless-sra"
   repository = "https://akeylesslabs.github.io/helm-charts"
   chart      = "akeyless-sra"

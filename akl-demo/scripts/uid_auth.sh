@@ -16,6 +16,11 @@ uid_token=$(echo "$output" | awk -F': ' '/Token:/ {print $2}')
 #associate UID auth to role
 akeyless assoc-role-am --am-name "/Demo/0 - Akeyless/UID_Auth" -r /admin --profile email > /dev/null 2>&1
 
+output=$(akeyless auth --access-type universal_identity --access-id $access_id --uid_token $uid_token)
+t_token=$(echo "$output" | awk -F': ' '/Token:/ {print $2}')
+
 # Output both access_id and UID token in JSON format
-jq -n --arg uid_access_id "$access_id" --arg uid_token "$uid_token" \
-   '{uid_access_id: $uid_access_id, uid_token: $uid_token}'
+jq -n --arg uid_access_id "$access_id" \
+    --arg uid_token "$uid_token" \
+    --arg t_token "$t_token" \
+   '{uid_access_id: $uid_access_id, uid_token: $uid_token, t_token: $t_token}'

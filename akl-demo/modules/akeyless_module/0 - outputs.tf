@@ -1,12 +1,10 @@
 output "api_access_id" {
   value = akeyless_auth_method_api_key.api_auth.access_id
-  sensitive = true
 }
 
-# output "api_access_key" {
-#   value = akeyless_auth_method_api_key.api_auth.access_key
-#   sensitive = true
-# }
+output "api_access_key" {
+  value = akeyless_auth_method_api_key.api_auth.access_key
+}
 
 output "saml_access_id" {
   value = akeyless_auth_method_saml.saml_auth.access_id
