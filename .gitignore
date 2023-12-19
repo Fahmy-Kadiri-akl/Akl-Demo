@@ -1,5 +1,6 @@
 #misc
-secrets.*
+*secrets.*
+*.txt
 
 # Local .terraform directories
 **/.terraform/*
