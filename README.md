@@ -80,6 +80,18 @@ uid_token = "placeholder"
 #SRA Docker Rep Creds: #populate if you are using SRA, leave blank otherwise, conditional Terraform deployment will skip SRA installtion if you don't have docker repo creds from Akeyless
 docker_repo_creds = ""
 ```
+Alternativly, you can use something like this in your shell.
+```
+export TF_VAR_domain_suffix="demo.mydomain.com"
+export TF_VAR_dns_zone_name="demo-akeyless-zone"                                                                                                                   
+export TF_VAR_ADMIN_EMAIL="akeyless-console@email.address" 
+export TF_VAR_ADMIN_PASSWORD="mypassword"
+export TF_VAR_gcp_project="my-first-project-123456"
+export TF_VAR_gcp_region="us-central1"
+export TF_VAR_gcp_key="$(cat ./keys.json)"
+export TF_VAR_config_context="my-first-project-123456_us-central1_my-k8s-cluster"
+export TF_VAR_config_path="~/.kube/config"
+```
 
 ## Known Issues
 - You may run into permissions issues because your service accounts may not have the right set of permissions to perform actions in your GCP environment. When you see an error related to permissions, find the corresponding missing permissions and add it like this:
